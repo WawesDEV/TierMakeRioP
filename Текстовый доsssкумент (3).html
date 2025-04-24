@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tier Maker Enhanced</title>
+    <style>
+        :root {
+            --s-tier: #ff7f7f;
+            --a-tier: #ffbf7f;
+            --b-tier: #ffdf7f;
+            --c-tier: #ffff7f;
+            --d-tier: #bfff7f;
+            --e-tier: #7fff7f;
+            --f-tier: #7fffff;
+            --default-tier: #f0f0f0;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #444;
+            margin-bottom: 30px;
+        }
+        
+        .tier-list {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-bottom: 30px;
+        }
+        
+        .tier-row {
+            display: flex;
+            min-height: 100px;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        .tier-label {
+            width: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.5rem;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+        
+        .tier-content {
+            flex-grow: 1;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background-color: rgba(255,255,255,0.7);
+            min-height: 100px;
+        }
+        
+        .item {
+            width: 80px;
+            height: 80px;
+            background-size: cover;
+            background-position: center;
+            border-radius: 5px;
+            cursor: grab;
+            position: relative;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .item:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            z-index: 10;
+        }
+        
+        .item.dragging {
+            opacity: 0.8;
+            transform: scale(1.1);
+            cursor: grabbing;
+        }
+        
+        .item-remove {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: red;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        
+        .item:hover .item-remove {
+            opacity: 1;
+        }
+        
+        .item-palette {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 20px;
+            background-color: #eee;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .control-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        button, select, input {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            background-color: #4a6fa5;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+        
+        button:hover, select:hover {
+            background-color: #3a5a8f;
+        }
+        
+        input[type="text"] {
+            background-color: white;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .close-modal {
+            float: right;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        
+        .tier-options {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .tier-color-picker {
+            width: 30px;
+            height: 30px;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+        }
+        
+        .add-tier-btn {
+            background-color: #5cb85c;
+        }
+        
+        .export-import {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 10px;
+        }
+        
+        textarea {
+            width: 100%;
+            min-height: 100px;
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        
+        .tier-row.unranked .tier-label {
+            background-color: var(--default-tier);
+            color: #666;
+        }
+        
+        @media (max-width: 768px) {
+            .tier-label {
+                width: 60px;
+                font-size: 1rem;
+            }
+            
+            .item {
+                width: 60px;
+                height: 60px;
+            }
+            
+            .controls {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Tier Maker Enhanced</h1>
+        
+        <div class="controls">
+            <div class="control-group">
+                <button id="add-tier-btn">Добавить уровень</button>
+                <button id="edit-tiers-btn">Редактировать уровни</button>
+            </div>
+            <div class="control-group">
+                <input type="text" id="list-title" placeholder="Название вашего тир-листа">
+                <button id="save-btn">Сохранить</button>
+                <button id="load-btn">Загрузить</button>
+            </div>
+            <div class="control-group">
+                <button id="add-images-btn">Добавить изображения</button>
+                <button id="clear-all-btn">Очистить все</button>
+            </div>
+        </div>
+        
+        <div class="tier-list" id="tier-list-container">
+            <!-- Tier rows will be added here dynamically -->
+        </div>
+        
+        <div class="item-palette" id="item-palette">
+            <p>Перетащите элементы из этой области в тир-лист выше</p>
+            <!-- Items will be added here dynamically -->
+        </div>
+        
+        <div class="export-import">
+            <h3>Экспорт/Импорт</h3>
+            <textarea id="export-area" placeholder="Здесь появится JSON для экспорта"></textarea>
+            <div class="control-group">
+                <button id="copy-json-btn">Копировать JSON</button>
+                <button id="import-btn">Импортировать из JSON</button>
+            </div>
+            <div class="control-group">
+                <button id="export-image-btn">Экспортировать как изображение</button>
+                <button id="share-btn">Поделиться</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add Tier Modal -->
+    <div class="modal" id="add-tier-modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Добавить новый уровень</h2>
+            <input type="text" id="new-tier-name" placeholder="Название уровня (например, S, A, B)">
+            <div class="tier-options">
+                <input type="color" id="new-tier-color" class="tier-color-picker" value="#ff7f7f">
+                <select id="new-tier-preset">
+                    <option value="custom">Выберите пресет</option>
+                    <option value="s">S Tier (Красный)</option>
+                    <option value="a">A Tier (Оранжевый)</option>
+                    <option value="b">B Tier (Желтый)</option>
+                    <option value="c">C Tier (Светло-желтый)</option>
+                    <option value="d">D Tier (Светло-зеленый)</option>
+                    <option value="e">E Tier (Зеленый)</option>
+                    <option value="f">F Tier (Голубой)</option>
+                </select>
+            </div>
+            <button id="confirm-add-tier" class="add-tier-btn">Добавить уровень</button>
+        </div>
+    </div>
+    
+    <!-- Edit Tiers Modal -->
+    <div class="modal" id="edit-tiers-modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Редактировать уровни</h2>
+            <div id="tier-edit-list">
+                <!-- Tier edit items will be added here dynamically -->
+            </div>
+            <button id="save-tier-edits">Сохранить изменения</button>
+        </div>
+    </div>
+    
+    <!-- Add Images Modal -->
+    <div class="modal" id="add-images-modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Добавить изображения</h2>
+            <div class="control-group">
+                <input type="text" id="image-urls" placeholder="URL изображений (разделяйте запятыми)">
+                <button id="add-urls-btn">Добавить по URL</button>
+            </div>
+            <p>Или загрузите с компьютера:</p>
+            <input type="file" id="file-upload" multiple accept="image/*">
+            <div id="upload-preview" style="margin-top: 20px;"></div>
+        </div>
+    </div>
+    
+    <script>
+        // Default tiers
+        const defaultTiers = [
+            { name: 'S', color: 'var(--s-tier)' },
+            { name: 'A', color: 'var(--a-tier)' },
+            { name: 'B', color: 'var(--b-tier)' },
+            { name: 'C', color: 'var(--c-tier)' },
+            { name: 'D', color: 'var(--d-tier)' },
+            { name: 'F', color: 'var(--f-tier)' },
+            { name: 'Unranked', color: 'var(--default-tier)', isUnranked: true }
+        ];
+        
+        let tiers = JSON.parse(JSON.stringify(defaultTiers));
+        let items = [];
+        let draggingItem = null;
+        let dragStartTier = null;
+        
+        // DOM Elements
+        const tierListContainer = document.getElementById('tier-list-container');
+        const itemPalette = document.getElementById('item-palette');
+        const addTierModal = document.getElementById('add-tier-modal');
+        const editTiersModal = document.getElementById('edit-tiers-modal');
+        const addImagesModal = document.getElementById('add-images-modal');
+        const exportArea = document.getElementById('export-area');
+        
+        // Initialize the app
+        function init() {
+            renderTierList();
+            setupEventListeners();
+            
+            // Add some sample items
+            addSampleItems();
+        }
+        
+        // Render the tier list
+        function renderTierList() {
+            tierListContainer.innerHTML = '';
+            
+            tiers.forEach(tier => {
+                const tierRow = document.createElement('div');
+                tierRow.className = 'tier-row';
+                if (tier.isUnranked) tierRow.classList.add('unranked');
+                
+                const tierLabel = document.createElement('div');
+                tierLabel.className = 'tier-label';
+                tierLabel.textContent = tier.name;
+                tierLabel.style.backgroundColor = tier.color;
+                
+                const tierContent = document.createElement('div');
+                tierContent.className = 'tier-content';
+                tierContent.dataset.tierName = tier.name;
+                
+                // Add items to this tier
+                items.filter(item => item.tier === tier.name).forEach(item => {
+                    const itemElement = createItemElement(item);
+                    tierContent.appendChild(itemElement);
+                });
+                
+                tierRow.appendChild(tierLabel);
+                tierRow.appendChild(tierContent);
+                tierListContainer.appendChild(tierRow);
+            });
+        }
+        
+        // Create an item element
+        function createItemElement(item) {
+            const itemElement = document.createElement('div');
+            itemElement.className = 'item';
+            itemElement.dataset.itemId = item.id;
+            itemElement.style.backgroundImage = `url('${item.image}')`;
+            
+            const removeBtn = document.createElement('div');
+            removeBtn.className = 'item-remove';
+            removeBtn.innerHTML = '&times;';
+            removeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                removeItem(item.id);
+            });
+            
+            itemElement.appendChild(removeBtn);
+            
+            // Drag and drop events
+            itemElement.draggable = true;
+            itemElement.addEventListener('dragstart', handleDragStart);
+            itemElement.addEventListener('dragend', handleDragEnd);
+            
+            return itemElement;
+        }
+        
+        // Setup event listeners
+        function setupEventListeners() {
+            // Tier list container events for drop
+            tierListContainer.addEventListener('dragover', handleDragOver);
+            tierListContainer.addEventListener('drop', handleDrop);
+            
+            // Modal buttons
+            document.getElementById('add-tier-btn').addEventListener('click', () => {
+                addTierModal.style.display = 'flex';
+            });
+            
+            document.getElementById('edit-tiers-btn').addEventListener('click', () => {
+                openEditTiersModal();
+            });
+            
+            document.getElementById('add-images-btn').addEventListener('click', () => {
+                addImagesModal.style.display = 'flex';
+            });
+            
+            document.getElementById('clear-all-btn').addEventListener('click', clearAll);
+            
+            // Close modals when clicking X
+            document.querySelectorAll('.close-modal').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    this.closest('.modal').style.display = 'none';
+                });
+            });
+            
+            // Close modals when clicking outside
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        this.style.display = 'none';
+                    }
+                });
+            });
+            
+            // Add tier modal
+            document.getElementById('new-tier-preset').addEventListener('change', function() {
+                const presets = {
+                    's': '#ff7f7f',
+                    'a': '#ffbf7f',
+                    'b': '#ffdf7f',
+                    'c': '#ffff7f',
+                    'd': '#bfff7f',
+                    'e': '#7fff7f',
+                    'f': '#7fffff'
+                };
+                
+                if (presets[this.value]) {
+                    document.getElementById('new-tier-color').value = presets[this.value];
+                }
+            });
+            
+            document.getElementById('confirm-add-tier').addEventListener('click', addNewTier);
+            
+            // Save tier edits
+            document.getElementById('save-tier-edits').addEventListener('click', saveTierEdits);
+            
+            // Add images from URLs
+            document.getElementById('add-urls-btn').addEventListener('click', addImagesFromUrls);
+            
+            // File upload
+            document.getElementById('file-upload').addEventListener('change', handleFileUpload);
+            
+            // Export/Import
+            document.getElementById('copy-json-btn').addEventListener('click', copyJsonToClipboard);
+            document.getElementById('import-btn').addEventListener('click', importFromJson);
+            document.getElementById('export-image-btn').addEventListener('click', exportAsImage);
+            document.getElementById('share-btn').addEventListener('click', shareTierList);
+            document.getElementById('save-btn').addEventListener('click', saveTierList);
+            document.getElementById('load-btn').addEventListener('click', loadTierList);
+        }
+        
+        // Drag and drop handlers
+        function handleDragStart(e) {
+            draggingItem = this;
+            dragStartTier = this.parentElement.dataset.tierName;
+            this.classList.add('dragging');
+            e.dataTransfer.setData('text/plain', this.dataset.itemId);
+            e.dataTransfer.effectAllowed = 'move';
+        }
+        
+        function handleDragEnd() {
+            this.classList.remove('dragging');
+            draggingItem = null;
+            dragStartTier = null;
+        }
+        
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+        }
+        
+        function handleDrop(e) {
+            e.preventDefault();
+            if (!draggingItem) return;
+            
+            const itemId = e.dataTransfer.getData('text/plain');
+            const targetTier = e.target.closest('.tier-content');
+            
+            if (targetTier) {
+                const newTier = targetTier.dataset.tierName;
+                
+                // Update item's tier
+                const itemIndex = items.findIndex(item => item.id === itemId);
+                if (itemIndex !== -1) {
+                    items[itemIndex].tier = newTier;
+                }
+                
+                // Move the item visually
+                targetTier.appendChild(draggingItem);
+                
+                // Update export area
+                updateExportArea();
+            }
+        }
+        
+        // Add a new tier
+        function addNewTier() {
+            const name = document.getElementById('new-tier-name').value.trim();
+            const color = document.getElementById('new-tier-color').value;
+            
+            if (!name) {
+                alert('Пожалуйста, введите название уровня');
+                return;
+            }
+            
+            if (tiers.some(tier => tier.name === name)) {
+                alert('Уровень с таким названием уже существует');
+                return;
+            }
+            
+            tiers.splice(tiers.length - 1, 0, { // Insert before Unranked
+                name,
+                color
+            });
+            
+            renderTierList();
+            addTierModal.style.display = 'none';
+            
+            // Reset form
+            document.getElementById('new-tier-name').value = '';
+            document.getElementById('new-tier-color').value = '#ff7f7f';
+            document.getElementById('new-tier-preset').value = 'custom';
+            
+            updateExportArea();
+        }
+        
+        // Open edit tiers modal
+        function openEditTiersModal() {
+            const tierEditList = document.getElementById('tier-edit-list');
+            tierEditList.innerHTML = '';
+            
+            tiers.filter(tier => !tier.isUnranked).forEach(tier => {
+                const tierEditItem = document.createElement('div');
+                tierEditItem.className = 'tier-edit-item';
+                tierEditItem.style.margin = '10px 0';
+                tierEditItem.style.padding = '10px';
+                tierEditItem.style.backgroundColor = '#f5f5f5';
+                tierEditItem.style.borderRadius = '5px';
+                
+                tierEditItem.innerHTML = `
+                    <input type="text" value="${tier.name}" class="edit-tier-name" style="margin-right: 10px;">
+                    <input type="color" value="${tier.color.replace(/var\(--[a-z]-tier\)/, getComputedStyle(document.documentElement).getPropertyValue(tier.color.match(/var\((--[a-z]-tier)\)/)[1]) || tier.color)}" class="edit-tier-color">
+                    <button class="remove-tier-btn" data-tier-name="${tier.name}" style="margin-left: 10px; background-color: #d9534f;">Удалить</button>
+                `;
+                
+                tierEditList.appendChild(tierEditItem);
+            });
+            
+            // Add event listeners to remove buttons
+            document.querySelectorAll('.remove-tier-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const tierName = this.dataset.tierName;
+                    
+                    // Move all items from this tier to Unranked
+                    items.forEach(item => {
+                        if (item.tier === tierName) {
+                            item.tier = 'Unranked';
+                        }
+                    });
+                    
+                    // Remove the tier
+                    tiers = tiers.filter(tier => tier.name !== tierName);
+                    
+                    // Reopen the modal to refresh the list
+                    openEditTiersModal();
+                });
+            });
+            
+            editTiersModal.style.display = 'flex';
+        }
+        
+        // Save tier edits
+        function saveTierEdits() {
+            const tierEditItems = document.querySelectorAll('.tier-edit-item');
+            
+            tierEditItems.forEach(editItem => {
+                const nameInput = editItem.querySelector('.edit-tier-name');
+                const colorInput = editItem.querySelector('.edit-tier-color');
+                
+                const oldName = nameInput.defaultValue;
+                const newName = nameInput.value.trim();
+                const newColor = colorInput.value;
+                
+                // Update tier name and color
+                const tierIndex = tiers.findIndex(tier => tier.name === oldName);
+                if (tierIndex !== -1) {
+                    tiers[tierIndex].name = newName;
+                    tiers[tierIndex].color = newColor;
+                    
+                    // Update items' tier references if name changed
+                    if (oldName !== newName) {
+                        items.forEach(item => {
+                            if (item.tier === oldName) {
+                                item.tier = newName;
+                            }
+                        });
+                    }
+                }
+            });
+            
+            renderTierList();
+            editTiersModal.style.display = 'none';
+            updateExportArea();
+        }
+        
+        // Add sample items
+        function addSampleItems() {
+            const sampleImages = [
+                'https://via.placeholder.com/80/ff9999/000000?text=Item1',
+                'https://via.placeholder.com/80/99ff99/000000?text=Item2',
+                'https://via.placeholder.com/80/9999ff/000000?text=Item3',
+                'https://via.placeholder.com/80/ffff99/000000?text=Item4',
+                'https://via.placeholder.com/80/ff99ff/000000?text=Item5',
+                'https://via.placeholder.com/80/99ffff/000000?text=Item6'
+            ];
+            
+            sampleImages.forEach((image, index) => {
+                const item = {
+                    id: `item-${Date.now()}-${index}`,
+                    image,
+                    tier: 'Unranked'
+                };
+                
+                items.push(item);
+                
+                const itemElement = createItemElement(item);
+                document.querySelector('.tier-content[data-tier-name="Unranked"]').appendChild(itemElement);
+                
+                // Also add to palette
+                const paletteItem = itemElement.cloneNode(true);
+                paletteItem.addEventListener('dragstart', handleDragStart);
+                paletteItem.addEventListener('dragend', handleDragEnd);
+                itemPalette.appendChild(paletteItem);
+            });
+            
+            updateExportArea();
+        }
+        
+        // Add images from URLs
+        function addImagesFromUrls() {
+            const urlsInput = document.getElementById('image-urls').value.trim();
+            if (!urlsInput) return;
+            
+            const urls = urlsInput.split(',').map(url => url.trim()).filter(url => url);
+            
+            urls.forEach(url => {
+                const item = {
+                    id: `item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                    image: url,
+                    tier: 'Unranked'
+                };
+                
+                items.push(item);
+                
+                const itemElement = createItemElement(item);
+                document.querySelector('.tier-content[data-tier-name="Unranked"]').appendChild(itemElement);
+                
+                // Also add to palette
+                const paletteItem = itemElement.cloneNode(true);
+                paletteItem.addEventListener('dragstart', handleDragStart);
+                paletteItem.addEventListener('dragend', handleDragEnd);
+                itemPalette.appendChild(paletteItem);
+            });
+            
+            document.getElementById('image-urls').value = '';
+            updateExportArea();
+        }
+        
+        // Handle file upload
+        function handleFileUpload(e) {
+            const files = e.target.files;
+            const preview = document.getElementById('upload-preview');
+            preview.innerHTML = '';
+            
+            if (!files.length) return;
+            
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                if (!file.type.match('image.*')) continue;
+                
+                const reader = new FileReader();
+                
+                reader.onload = (function(file) {
+                    return function(e) {
+                        const item = {
+                            id: `item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                            image: e.target.result,
+                            tier: 'Unranked'
+                        };
+                        
+                        items.push(item);
+                        
+                        const itemElement = createItemElement(item);
+                        document.querySelector('.tier-content[data-tier-name="Unranked"]').appendChild(itemElement);
+                        
+                        // Also add to palette
+                        const paletteItem = itemElement.cloneNode(true);
+                        paletteItem.addEventListener('dragstart', handleDragStart);
+                        paletteItem.addEventListener('dragend', handleDragEnd);
+                        itemPalette.appendChild(paletteItem);
+                        
+                        // Add to preview
+                        const previewItem = document.createElement('div');
+                        previewItem.style.display = 'inline-block';
+                        previewItem.style.margin = '5px';
+                        previewItem.innerHTML = `<img src="${e.target.result}" width="50" height="50" style="object-fit: cover;">`;
+                        preview.appendChild(previewItem);
+                    };
+                })(file);
+                
+                reader.readAsDataURL(file);
+            }
+            
+            updateExportArea();
+        }
+        
+        // Remove an item
+        function removeItem(itemId) {
+            // Remove from items array
+            items = items.filter(item => item.id !== itemId);
+            
+            // Remove from tier list
+            document.querySelector(`.item[data-item-id="${itemId}"]`)?.remove();
+            
+            // Remove from palette
+            document.querySelector(`#item-palette .item[data-item-id="${itemId}"]`)?.remove();
+            
+            updateExportArea();
+        }
+        
+        // Clear all items
+        function clearAll() {
+            if (confirm('Вы уверены, что хотите удалить все элементы? Это действие нельзя отменить.')) {
+                items = [];
+                document.querySelectorAll('.tier-content .item').forEach(el => el.remove());
+                document.querySelectorAll('#item-palette .item').forEach(el => el.remove());
+                updateExportArea();
+            }
+        }
+        
+        // Reset to default tiers
+        function resetToDefaultTiers() {
+            tiers = JSON.parse(JSON.stringify(defaultTiers));
+            renderTierList();
+            updateExportArea();
+        }
+        
+        // Update export area
+        function updateExportArea() {
+            const data = {
+                title: document.getElementById('list-title').value,
+                tiers: tiers.filter(tier => !tier.isUnranked),
+                items: items
+            };
+            
+            exportArea.value = JSON.stringify(data, null, 2);
+        }
+        
+        // Copy JSON to clipboard
+        function copyJsonToClipboard() {
+            exportArea.select();
+            document.execCommand('copy');
+            alert('JSON скопирован в буфер обмена');
+        }
+        
+        // Import from JSON
+        function importFromJson() {
+            try {
+                const data = JSON.parse(exportArea.value);
+                
+                if (data.title) {
+                    document.getElementById('list-title').value = data.title;
+                }
+                
+                if (Array.isArray(data.tiers)) {
+                    tiers = [...data.tiers, { name: 'Unranked', color: 'var(--default-tier)', isUnranked: true }];
+                }
+                
+                if (Array.isArray(data.items)) {
+                    items = data.items;
+                    
+                    // Clear existing items
+                    document.querySelectorAll('.tier-content .item').forEach(el => el.remove());
+                    document.querySelectorAll('#item-palette .item').forEach(el => el.remove());
+                    
+                    // Add imported items
+                    items.forEach(item => {
+                        const itemElement = createItemElement(item);
+                        document.querySelector(`.tier-content[data-tier-name="${item.tier}"]`)?.appendChild(itemElement);
+                        
+                        // Also add to palette
+                        const paletteItem = itemElement.cloneNode(true);
+                        paletteItem.addEventListener('dragstart', handleDragStart);
+                        paletteItem.addEventListener('dragend', handleDragEnd);
+                        itemPalette.appendChild(paletteItem);
+                    });
+                }
+                
+                renderTierList();
+                alert('Импорт завершен успешно');
+            } catch (e) {
+                alert('Ошибка при импорте JSON: ' + e.message);
+            }
+        }
+        
+        // Export as image
+        function exportAsImage() {
+            alert('В реальном приложении здесь бы использовалась библиотека типа html2canvas для создания изображения');
+            // Пример реализации с html2canvas:
+            /*
+            html2canvas(tierListContainer).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'tier-list.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+            */
+        }
+        
+        // Share tier list
+        function shareTierList() {
+            if (navigator.share) {
+                navigator.share({
+                    title: document.getElementById('list-title').value || 'Мой Tier List',
+                    text: 'Посмотрите мой tier list!',
+                    url: window.location.href
+                }).catch(err => {
+                    console.log('Ошибка при попытке поделиться:', err);
+                });
+            } else {
+                alert('Функция "Поделиться" недоступна в вашем браузере. Скопируйте ссылку вручную.');
+            }
+        }
+        
+        // Save tier list to localStorage
+        function saveTierList() {
+            const data = {
+                title: document.getElementById('list-title').value,
+                tiers: tiers,
+                items: items
+            };
+            
+            localStorage.setItem('tierListSaved', JSON.stringify(data));
+            alert('Tier list сохранен локально');
+        }
+        
+        // Load tier list from localStorage
+        function loadTierList() {
+            const savedData = localStorage.getItem('tierListSaved');
+            if (!savedData) {
+                alert('Нет сохраненных данных');
+                return;
+            }
+            
+            exportArea.value = savedData;
+            importFromJson();
+        }
+        
+        // Initialize the app
+        init();
+    </script>
+</body>
+</html>
